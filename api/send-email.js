@@ -1,6 +1,34 @@
 const nodemailer = require("nodemailer");
 
+const ALLOWED_ORIGINS = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://nsauto.ae", 
+];
+
+function setCors(req, res) {
+  const origin = req.headers.origin;
+  const allow =
+    origin && ALLOWED_ORIGINS.includes(origin) ? origin : ""; // empty -> no CORS
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Origin", allow);
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  // If you ever need cookies, also set:
+  // res.setHeader("Access-Control-Allow-Credentials", "true");
+}
+
 module.exports = async (req, res) => {
+  setCors(req, res);
+
+  // Handle the browser preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   if (req.method !== "POST") {
     return res
       .status(405)
@@ -43,11 +71,13 @@ module.exports = async (req, res) => {
       `,
     });
 
-    res
+    return res
       .status(200)
       .json({ success: true, message: "Email sent successfully!" });
   } catch (err) {
     console.error("Error sending email:", err);
-    res.status(500).json({ success: false, message: "Failed to send email." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to send email." });
   }
 };
